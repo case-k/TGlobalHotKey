@@ -36,9 +36,10 @@ uses
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-//  FHotKey := TGlobalHotKey.Create(Self);
-//  FHotKey.OnHotKey := OnHotKey;
-//  FHotKey.VKCode := VK_PAUSE;
+  FHotKey := TGlobalHotKey.Create(Self);
+  FHotKey.OnHotKey := OnHotKey;
+  FHotKey.VKCode := VK_PAUSE;
+  FHotKey.Enabled := True;
 
 //  if FHotKey.IsRegistered then
 //    Memo1.Lines.add('reged');
@@ -107,23 +108,31 @@ begin
     // シートをアクティブにする
     xlWorkSheet.Activate;
 
-
     // A1に貼り付け
     xlWorkSheet.Range['A1','A1'].Select;
     xlWorkSheet.Paste;
 
+    // 用紙の向きを横に
+    xlWorkSheet.PageSetup.Orientation := 2; // xlLandscape=2
+
+    // 位置を中央に
+    xlWorkSheet.PageSetup.CenterHorizontally := True;
+    xlWorkSheet.PageSetup.CenterVertically := True;
+
+    // １頁に収まるように
+    xlWorkSheet.PageSetup.Zoom := False;
+    xlWorkSheet.PageSetup.FitToPagesWide := 1;
+    xlWorkSheet.PageSetup.FitToPagesTall := 1;
 
     // ウィンドウの表示
     xlApplication.Visible := True;
 
-
     // Excelを終了する
     //xlApplication.Quit;
 
-    // オブジェクトを初期化する
+    // 明示的に破棄
     Excel := Unassigned;
     xlApplication := Unassigned;
-
 
   finally
     bmp.Free;
