@@ -26,6 +26,7 @@ type
     procedure SetID(const Value: LongWord);
     procedure SetEnabled(const Value: Boolean);
     procedure SetOnHotKey(const Value: TNotifyEvent);
+    function GetModifiersNum(): Integer;
   protected
     procedure DoHotkey(AKey, AShift: Word); virtual;
   public
@@ -74,7 +75,7 @@ begin
   begin
     UnRegisterHotKey(FWindowHandle, FID);
     // 破棄したことを競合アプリに通知する
-    PostMessage(HWND_BROADCAST, FDelegateMsg, FVKCode, 0);
+    PostMessage(HWND_BROADCAST, FDelegateMsg, FVKCode, GetModifiersNum);
   end;
   DeallocateHWnd(FWindowHandle);
   inherited;
@@ -84,6 +85,15 @@ procedure TGlobalHotKey.DoHotkey(AKey, AShift: Word);
 begin
   if Assigned(FOnHotKey) then
     FOnHotKey(Self);
+end;
+
+function TGlobalHotKey.GetModifiersNum: Integer;
+begin
+  Result := 0;
+  if modALT in FModifiers then Result := Result or MOD_ALT;
+  if modCONTROL in FModifiers then Result := Result or MOD_CONTROL;
+  if modSHIFT in FModifiers then Result := Result or MOD_SHIFT;
+  if modWIN in FModifiers then Result := Result or MOD_WIN;
 end;
 
 procedure TGlobalHotKey.RegHotKey;
@@ -98,11 +108,7 @@ begin
   if (FVKCode <> 0) and FEnabled and Assigned(FOnHotKey) then
   begin
     // ホットキー登録
-    mods := 0;
-    if modALT in FModifiers then mods := mods or MOD_ALT;
-    if modCONTROL in FModifiers then mods := mods or MOD_CONTROL;
-    if modSHIFT in FModifiers then mods := mods or MOD_SHIFT;
-    if modWIN in FModifiers then mods := mods or MOD_WIN;
+    mods := GetModifiersNum;
     FIsRegistered := RegisterHotKey(FWindowHandle, FID, mods, FVKCode);
   end;
 
@@ -167,7 +173,7 @@ begin
   else
   if (Msg.Msg = FDelegateMsg) and (FDelegateMsg <> 0) then
   begin
-    if not IsRegistered and FEnabled and (UINT(Msg.WParam) = FVKCode) then
+    if not FIsRegistered and FEnabled and (UINT(Msg.WParam) = FVKCode) and (Msg.LParam = GetModifiersNum) then
       // 競合していた他アプリがホットキーを破棄したので再登録を試みる
       RegHotKey;
   end else
