@@ -18,6 +18,7 @@ type
     FVKCode: LongWord;
     FModifiers: TModifiers;
     FIsRegistered: Boolean;
+    FDelegateMsg: UINT;
     procedure SetVKCode(const Value: Cardinal);
     procedure RegHotKey();
     procedure WndProc(var Msg: TMessage);
@@ -26,7 +27,7 @@ type
     procedure SetEnabled(const Value: Boolean);
     procedure SetOnHotKey(const Value: TNotifyEvent);
   protected
-    procedure DoHotkey(AKey, AShift: Word); dynamic;
+    procedure DoHotkey(AKey, AShift: Word); virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -61,6 +62,7 @@ begin
   FModifiers := [];
   FIsRegistered := False;
   FOnHotKey := nil;
+  FDelegateMsg := RegisterWindowMessage('TGlobalHotKey');
 
   // メッセージ受信用のウィンドウを作る
   FWindowHandle := AllocateHWnd(WndProc);
@@ -68,7 +70,12 @@ end;
 
 destructor TGlobalHotKey.Destroy;
 begin
-  UnRegisterHotKey(FWindowHandle, FID);
+  if FIsRegistered then
+  begin
+    UnRegisterHotKey(FWindowHandle, FID);
+    // 破棄したことを競合アプリに通知する
+    PostMessage(HWND_BROADCAST, FDelegateMsg, FVKCode, 0);
+  end;
   DeallocateHWnd(FWindowHandle);
   inherited;
 end;
@@ -158,6 +165,12 @@ begin
       Application.HandleException(Self)
     end
   else
+  if (Msg.Msg = FDelegateMsg) and (FDelegateMsg <> 0) then
+  begin
+    if not IsRegistered and FEnabled and (UINT(Msg.WParam) = FVKCode) then
+      // 競合していた他アプリがホットキーを破棄したので再登録を試みる
+      RegHotKey;
+  end else
     Msg.Result := DefWindowProc(FWindowHandle, Msg.Msg, Msg.wParam, Msg.lParam);
 end;
 

@@ -48,10 +48,4 @@ object Form1: TForm1
     TabOrder = 3
     OnClick = Button3Click
   end
-  object GlobalHotKey1: TGlobalHotKey
-    VKCode = 90
-    OnHotKey = GlobalHotKey1HotKey
-    Left = 460
-    Top = 415
-  end
 end

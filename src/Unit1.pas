@@ -12,7 +12,6 @@ type
     Button1: TButton;
     Button2: TButton;
     Button3: TButton;
-    GlobalHotKey1: TGlobalHotKey;
     procedure FormCreate(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure GlobalHotKey1HotKey(Sender: TObject);
@@ -38,7 +37,8 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   FHotKey := TGlobalHotKey.Create(Self);
   FHotKey.OnHotKey := OnHotKey;
-  FHotKey.VKCode := VK_PAUSE;
+  FHotKey.VKCode := VK_PAUSE;//19
+//  FHotKey.VKCode := VK_SCROLL;//145
   FHotKey.Enabled := True;
 
 //  if FHotKey.IsRegistered then
@@ -76,40 +76,45 @@ var
 
 begin
 
+  // スクショ撮ってクリップボードへ
   bmp := Graphics.TBitmap.Create();
   try
-
     GetScreenShot(bmp);
 
     //bmp.SaveToFile('I:\test000000000.bmp');
     ClipBoard.Assign(bmp);
+  finally
+    bmp.Free;
+  end;
 
 
-    // エクセル起動
-    try
-      Excel := CreateOleObject('Excel.Application');
-      xlApplication := Excel.Application;
-    except
-      // 起動失敗時の処理
-      on EOleSysError do
-      begin
-        ShowMessage('Excelを起動できません');
-        Excel := Unassigned;
-        Exit;
-      end;
+  // エクセル起動
+  try
+    Excel := CreateOleObject('Excel.Application');
+  except
+    // 起動失敗時の処理
+    on EOleSysError do
+    begin
+      ShowMessage('Excelを起動できません');
+      Excel := Unassigned;
+      Exit;
     end;
+  end;
 
+  xlApplication := Excel.Application;
+  try
     // ブックの新規作成
     xlWorkBook := xlApplication.Workbooks.Add;
 
     // Sheet1 を選択
-    xlWorkSheet := xlWorkBook.Worksheets['Sheet1'];
+    xlWorkSheet := xlWorkBook.Worksheets[1];
 
     // シートをアクティブにする
     xlWorkSheet.Activate;
 
     // A1に貼り付け
-    xlWorkSheet.Range['A1','A1'].Select;
+    //xlWorkSheet.Range['A1:A1'].Select;
+    xlWorkSheet.Cells[1,1].Select;
     xlWorkSheet.Paste;
 
     // 用紙の向きを横に
@@ -124,19 +129,17 @@ begin
     xlWorkSheet.PageSetup.FitToPagesWide := 1;
     xlWorkSheet.PageSetup.FitToPagesTall := 1;
 
+  finally
     // ウィンドウの表示
     xlApplication.Visible := True;
-
-    // Excelを終了する
-    //xlApplication.Quit;
-
-    // 明示的に破棄
-    Excel := Unassigned;
-    xlApplication := Unassigned;
-
-  finally
-    bmp.Free;
   end;
+
+  // Excelを終了する
+  //xlApplication.Quit;
+
+  // 明示的に破棄
+  xlApplication := Unassigned;
+  Excel := Unassigned;
 
 end;
 
